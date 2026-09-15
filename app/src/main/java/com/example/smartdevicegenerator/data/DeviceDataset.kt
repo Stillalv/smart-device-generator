@@ -109,9 +109,15 @@ object DeviceDataset {
                 parseProfilesJson(json)
             } else {
                 // Fallback: Read directly from local file in unit test environment
-                val file = java.io.File("app/src/main/assets/devices.json")
-                if (file.exists()) {
-                    parseProfilesJson(file.readText())
+                val candidates = listOf(
+                    java.io.File("src/main/assets/devices.json"),
+                    java.io.File("app/src/main/assets/devices.json"),
+                    java.io.File("../app/src/main/assets/devices.json"),
+                    java.io.File("C:/Users/uni/Documents/uni-device/app/src/main/assets/devices.json")
+                )
+                val targetFile = candidates.firstOrNull { it.exists() }
+                if (targetFile != null) {
+                    parseProfilesJson(targetFile.readText())
                 } else {
                     emptyList()
                 }

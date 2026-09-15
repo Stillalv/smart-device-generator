@@ -26,9 +26,11 @@ class DeviceValidatorTest {
         val corrupted1 = device.copy(androidId = "1234567890abcde")
         assertFalse("15-char Android ID must fail", DeviceValidator.validate(corrupted1).isValid)
 
-        // Invalid character (non-hex 'z')
-        val corrupted2 = device.copy(androidId = "1234567890abcdefz"[0].toString().repeat(16).replace('z', 'Z'))
+        // Invalid character (non-hex 'z' and uppercase)
+        val corrupted2 = device.copy(androidId = "1234567890abcdez")
         assertFalse("Uppercase or non-hex must fail", DeviceValidator.validate(corrupted2).isValid)
+        val corrupted3 = device.copy(androidId = "1234567890ABCDEF")
+        assertFalse("Uppercase hex must fail", DeviceValidator.validate(corrupted3).isValid)
     }
 
     @Test
