@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -41,6 +43,7 @@ fun FilterSheet(
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var currentFilter by remember { mutableStateOf(filterState) }
+    val scrollState = rememberScrollState()
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -51,17 +54,87 @@ fun FilterSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp)
+                .verticalScroll(scrollState)
                 .padding(bottom = 32.dp)
         ) {
             Text(
-                text = "Filter Devices",
+                text = "Detailed Device Filters",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Architecture Filter
+            // 1. Release Era Filter
+            Text(
+                text = "RELEASE ERA",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            val eras = listOf(
+                "2008-2012" to "Legacy (2008-2012)",
+                "2013-2017" to "4G Early (2013-2017)",
+                "2018-2022" to "Modern 5G (2018-2022)",
+                "2023+" to "Current Gen (2023+)"
+            )
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                eras.forEach { (key, label) ->
+                    val isSelected = currentFilter.selectedEra == key
+                    FilterChip(
+                        selected = isSelected,
+                        onClick = {
+                            currentFilter = currentFilter.copy(
+                                selectedEra = if (isSelected) null else key
+                            )
+                        },
+                        label = { Text(label, fontSize = 12.sp) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                            selectedLabelColor = MaterialTheme.colorScheme.primary
+                        )
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // 2. SoC Family Filter
+            Text(
+                text = "SOC CHIPSET FAMILY",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            val socFamilies = listOf("Snapdragon", "Dimensity", "Exynos", "Tensor", "Helio", "Kirin", "Intel")
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                socFamilies.forEach { soc ->
+                    val isSelected = currentFilter.selectedSoC == soc
+                    FilterChip(
+                        selected = isSelected,
+                        onClick = {
+                            currentFilter = currentFilter.copy(
+                                selectedSoC = if (isSelected) null else soc
+                            )
+                        },
+                        label = { Text(soc, fontSize = 12.sp) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                            selectedLabelColor = MaterialTheme.colorScheme.primary
+                        )
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // 3. CPU Architecture Filter
             Text(
                 text = "CPU ARCHITECTURE",
                 style = MaterialTheme.typography.labelSmall,
@@ -93,7 +166,7 @@ fun FilterSheet(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Refresh Rate
+            // 4. Minimum Refresh Rate
             Text(
                 text = "MINIMUM REFRESH RATE",
                 style = MaterialTheme.typography.labelSmall,
@@ -125,9 +198,9 @@ fun FilterSheet(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Brand Filter
+            // 5. Brand Filter
             Text(
-                text = "POPULAR BRANDS",
+                text = "MANUFACTURER BRAND",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontWeight = FontWeight.SemiBold
@@ -136,8 +209,8 @@ fun FilterSheet(
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                availableBrands.take(12).forEach { brand ->
-                    val isSelected = currentFilter.selectedBrand == brand
+                availableBrands.forEach { brand ->
+                    val isSelected = currentFilter.selectedBrand.equals(brand, ignoreCase = true)
                     FilterChip(
                         selected = isSelected,
                         onClick = {
@@ -145,7 +218,7 @@ fun FilterSheet(
                                 selectedBrand = if (isSelected) null else brand
                             )
                         },
-                        label = { Text(brand) },
+                        label = { Text(brand, fontSize = 12.sp) },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
                             selectedLabelColor = MaterialTheme.colorScheme.primary

@@ -17,6 +17,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
@@ -25,12 +29,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.smartdevicegenerator.data.DeviceDataset
+import com.example.smartdevicegenerator.ui.components.BrandPickerField
 import com.example.smartdevicegenerator.ui.components.GenerateButton
 import com.example.smartdevicegenerator.ui.components.LucideIcons
 import com.example.smartdevicegenerator.ui.components.VersionPickerField
@@ -43,8 +49,16 @@ fun HomeScreen(
     onNavigateToResult: () -> Unit
 ) {
     val selectedVersion by viewModel.selectedVersion.collectAsState()
+    val selectedBrandMode by viewModel.selectedBrandMode.collectAsState()
     val includeLegacy by viewModel.includeLegacy.collectAsState()
     val isGenerating by viewModel.isGenerating.collectAsState()
+
+    val availableBrands = remember {
+        DeviceDataset.profiles.map { it.brand }.distinct().sorted()
+    }
+    val topBrands = remember {
+        listOf("Xiaomi", "Samsung", "Google", "OPPO", "realme", "vivo", "OnePlus", "Motorola")
+    }
 
     val scrollState = rememberScrollState()
 
@@ -94,6 +108,49 @@ fun HomeScreen(
                     includeLegacy = includeLegacy,
                     onVersionSelected = { viewModel.selectVersion(it) }
                 )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Optional Brand Selection Field
+                BrandPickerField(
+                    selectedBrand = selectedBrandMode,
+                    availableBrands = availableBrands,
+                    onBrandSelected = { viewModel.selectBrandMode(it) }
+                )
+
+                // Quick Brand Shortcuts
+                LazyRow(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    item {
+                        FilterChip(
+                            selected = selectedBrandMode == null,
+                            onClick = { viewModel.selectBrandMode(null) },
+                            label = { Text("All Brands", fontSize = 12.sp) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                selectedLabelColor = MaterialTheme.colorScheme.primary
+                            )
+                        )
+                    }
+                    items(topBrands) { brand ->
+                        val isSelected = selectedBrandMode.equals(brand, ignoreCase = true)
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = {
+                                viewModel.selectBrandMode(if (isSelected) null else brand)
+                            },
+                            label = { Text(brand, fontSize = 12.sp) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                selectedLabelColor = MaterialTheme.colorScheme.primary
+                            )
+                        )
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(16.dp))
 

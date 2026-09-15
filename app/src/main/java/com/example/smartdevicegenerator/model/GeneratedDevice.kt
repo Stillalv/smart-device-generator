@@ -67,6 +67,8 @@ data class GeneratedDevice(
         screenObj.put("refreshRate", refreshRate)
         json.put("screen", screenObj)
 
+        json.put("device", deviceCodename)
+        json.put("product", productName)
         json.put("camera", camera)
         json.put("battery", battery)
         json.put("releaseYear", releaseYear)
@@ -76,13 +78,63 @@ data class GeneratedDevice(
         return json.toString(2)
     }
 
+    /**
+     * Standard Android system properties format (build.prop),
+     * 100% compatible with Magisk props, emulator configs, and system property spoofing.
+     */
+    fun toBuildPropString(): String {
+        return """
+# --------------------------------------------------
+# Generated Android System Properties (build.prop)
+# Device: $deviceName
+# --------------------------------------------------
+ro.product.brand=$brand
+ro.product.manufacturer=$manufacturer
+ro.product.model=$model
+ro.product.name=$productName
+ro.product.device=$deviceCodename
+ro.build.product=$deviceCodename
+ro.build.id=$buildId
+ro.build.display.id=$buildId
+ro.build.version.release=${androidVersion.versionNumber}
+ro.build.version.sdk=$sdkVersion
+ro.build.type=user
+ro.build.tags=release-keys
+ro.build.fingerprint=$buildFingerprint
+ro.bootimage.build.fingerprint=$buildFingerprint
+ro.product.cpu.abi=$abi
+ro.serialno=$serialNumber
+ro.build.date.utc=${generatedAt / 1000}
+""".trimIndent()
+    }
+
+    /**
+     * Standard Play Integrity Fix (pif.json) format used by Magisk/KernelSU modules
+     * for passing Google Play Services / Play Integrity attestation.
+     */
+    fun toPifJsonString(): String {
+        val pif = JSONObject()
+        pif.put("MANUFACTURER", manufacturer)
+        pif.put("BRAND", brand)
+        pif.put("PRODUCT", productName)
+        pif.put("DEVICE", deviceCodename)
+        pif.put("MODEL", model)
+        pif.put("FINGERPRINT", buildFingerprint)
+        pif.put("ID", buildId)
+        pif.put("FIRST_API_LEVEL", sdkVersion.toString())
+        return pif.toString(2)
+    }
+
     fun toShareText(): String {
         return """
 [Smart Device Generator Profile]
-Device: $deviceName ($model)
-Brand: $brand ($manufacturer)
+Device: $deviceName
+Model: $model (ro.product.model)
+Device Codename: $deviceCodename (ro.product.device)
+Product Name: $productName (ro.product.name)
+Brand: $brand (ro.product.brand)
+Manufacturer: $manufacturer (ro.product.manufacturer)
 Android: ${androidVersion.displayName} (API $sdkVersion)
-Codename: $deviceCodename
 Build ID: $buildId
 Fingerprint: $buildFingerprint
 SoC: $soc

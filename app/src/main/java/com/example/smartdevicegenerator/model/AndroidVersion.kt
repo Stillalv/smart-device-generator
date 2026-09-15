@@ -24,4 +24,7 @@ data class AndroidVersion(
 
     val fullLabel: String
         get() = "$displayName (API $apiLevel)"
+
+    val versionNumber: String
+        get() = displayName.replace("Android ", "").trim()
 }

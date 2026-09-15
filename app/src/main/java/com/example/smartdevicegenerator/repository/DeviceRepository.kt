@@ -29,9 +29,10 @@ class DeviceRepository(private val context: Context? = null) {
 
     suspend fun generateDevice(
         version: AndroidVersion,
+        brand: String? = null,
         profile: DeviceProfile? = null
     ): GeneratedDevice = withContext(Dispatchers.Default) {
-        val device = DeviceGenerator.generateDevice(version, profile)
+        val device = DeviceGenerator.generateDevice(version, brand, profile)
         saveToHistory(device)
         device
     }

@@ -72,7 +72,7 @@ object DeviceDataset {
             manufacturer = obj.getString("manufacturer"),
             model = obj.getString("model"),
             productName = obj.optString("productName", obj.getString("model")),
-            deviceName = obj.getString("deviceName"),
+            deviceName = cleanDeviceName(obj.getString("deviceName")),
             androidVersions = versions,
             minimumAndroidApi = obj.getInt("minimumAndroidApi"),
             maximumKnownAndroidApi = obj.getInt("maximumKnownAndroidApi"),
@@ -95,6 +95,42 @@ object DeviceDataset {
             buildIdPatterns = patterns,
             deviceCodename = obj.getString("deviceCodename")
         )
+    }
+
+    /**
+     * Strips promotional slogans and technical marketing parentheticals while preserving
+     * valid model identifiers, generations, and release years.
+     */
+    fun cleanDeviceName(raw: String): String {
+        var name = raw.trim()
+
+        val trailingMarketing = listOf(
+            "UltraPixel",
+            "Duo Camera BoomSound",
+            "Duo Camera",
+            "BoomSound"
+        )
+        for (term in trailingMarketing) {
+            if (name.endsWith(term, ignoreCase = true)) {
+                name = name.removeSuffix(term).trim()
+            }
+        }
+
+        val parenRegex = Regex("""\s*\(([^)]+)\)$""")
+        var match = parenRegex.find(name)
+        while (match != null) {
+            val inside = match.groupValues[1].trim()
+            val isModelDesignation = inside.matches(
+                Regex("""^(M[0-9]|20[0-2][0-9]|[1-9](st|nd|rd|th)\s+Gen|[1-2][a-z]?|[45]G)$""", RegexOption.IGNORE_CASE)
+            )
+            if (!isModelDesignation) {
+                name = name.substring(0, match.range.first).trim()
+                match = parenRegex.find(name)
+            } else {
+                break
+            }
+        }
+        return name
     }
 
     /**

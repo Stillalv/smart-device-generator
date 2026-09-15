@@ -24,8 +24,11 @@ data class FilterState(
     val selectedBrand: String? = null,
     val selectedArchitecture: String? = null,
     val selectedEra: String? = null,
+    val selectedSoC: String? = null,
     val minRam: String? = null,
-    val minRefreshRate: Int? = null
+    val minRefreshRate: Int? = null,
+    val minApi: Int? = null,
+    val maxApi: Int? = null
 )
 
 class DeviceGeneratorViewModel(application: Application) : AndroidViewModel(application) {
@@ -39,6 +42,10 @@ class DeviceGeneratorViewModel(application: Application) : AndroidViewModel(appl
     // Selected Android version (defaults to Android 14 API 34)
     private val _selectedVersion = MutableStateFlow(AndroidVersionDataset.getByApiLevel(34))
     val selectedVersion: StateFlow<AndroidVersion> = _selectedVersion.asStateFlow()
+
+    // Optional Brand Mode for Generation (null = All Brands / Random)
+    private val _selectedBrandMode = MutableStateFlow<String?>(null)
+    val selectedBrandMode: StateFlow<String?> = _selectedBrandMode.asStateFlow()
 
     // Include Legacy Devices toggle (OFF by default: only API 21+)
     private val _includeLegacy = MutableStateFlow(false)
@@ -75,6 +82,10 @@ class DeviceGeneratorViewModel(application: Application) : AndroidViewModel(appl
         _selectedVersion.value = version
     }
 
+    fun selectBrandMode(brand: String?) {
+        _selectedBrandMode.value = brand
+    }
+
     fun toggleLegacyMode(enabled: Boolean) {
         _includeLegacy.value = enabled
         // If legacy disabled and current version is legacy, fallback to Android 5.0 (API 21)
@@ -87,7 +98,7 @@ class DeviceGeneratorViewModel(application: Application) : AndroidViewModel(appl
         viewModelScope.launch {
             _isGenerating.value = true
             try {
-                val device = repository.generateDevice(_selectedVersion.value, targetProfile)
+                val device = repository.generateDevice(_selectedVersion.value, _selectedBrandMode.value, targetProfile)
                 _generatedDevice.value = device
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -128,8 +139,18 @@ class DeviceGeneratorViewModel(application: Application) : AndroidViewModel(appl
             val matchesBrand = filter.selectedBrand == null || p.brand.equals(filter.selectedBrand, ignoreCase = true)
             val matchesArch = filter.selectedArchitecture == null || p.cpuArchitecture.equals(filter.selectedArchitecture, ignoreCase = true)
             val matchesRefresh = filter.minRefreshRate == null || p.refreshRate >= filter.minRefreshRate
+            val matchesMinApi = filter.minApi == null || p.maximumKnownAndroidApi >= filter.minApi
+            val matchesMaxApi = filter.maxApi == null || p.minimumAndroidApi <= filter.maxApi
+            val matchesSoC = filter.selectedSoC == null || p.soc.contains(filter.selectedSoC, ignoreCase = true)
+            val matchesEra = when (filter.selectedEra) {
+                "2008-2012" -> p.releaseYear in 2008..2012
+                "2013-2017" -> p.releaseYear in 2013..2017
+                "2018-2022" -> p.releaseYear in 2018..2022
+                "2023+" -> p.releaseYear >= 2023
+                else -> true
+            }
 
-            matchesQuery && matchesBrand && matchesArch && matchesRefresh
+            matchesQuery && matchesBrand && matchesArch && matchesRefresh && matchesMinApi && matchesMaxApi && matchesSoC && matchesEra
         }
     }
 

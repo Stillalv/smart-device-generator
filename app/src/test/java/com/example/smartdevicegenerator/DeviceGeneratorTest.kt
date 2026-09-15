@@ -91,4 +91,55 @@ class DeviceGeneratorTest {
         assertEquals(original.screenWidth, reconstructed.screenWidth)
         assertEquals(original.screenHeight, reconstructed.screenHeight)
     }
+
+    @Test
+    fun testBrandSelectionMode() {
+        val version = AndroidVersionDataset.getByApiLevel(34)
+        val testBrands = listOf("Xiaomi", "Samsung", "Google")
+
+        for (brand in testBrands) {
+            val device = DeviceGenerator.generateDevice(version, selectedBrand = brand)
+            assertNotNull(device)
+            assertEquals("Device brand should match selected brand filter", brand.lowercase(), device.brand.lowercase())
+        }
+    }
+
+    @Test
+    fun testCleanDeviceNameSanitizer() {
+        assertEquals("HTC One (M8)", DeviceDataset.cleanDeviceName("HTC One (M8) Duo Camera BoomSound"))
+        assertEquals("HTC One (M7)", DeviceDataset.cleanDeviceName("HTC One (M7) UltraPixel"))
+        assertEquals("Samsung Galaxy S24 Ultra", DeviceDataset.cleanDeviceName("Samsung Galaxy S24 Ultra (Titanium Frame & Galaxy AI)"))
+        assertEquals("Google Nexus 7 (2012)", DeviceDataset.cleanDeviceName("Google Nexus 7 (2012)"))
+        assertEquals("Motorola Moto G (1st Gen)", DeviceDataset.cleanDeviceName("Motorola Moto G (1st Gen)"))
+        assertEquals("Nothing Phone (1)", DeviceDataset.cleanDeviceName("Nothing Phone (1) (Glyph Interface)"))
+        assertEquals("POCOPHONE F1", DeviceDataset.cleanDeviceName("POCOPHONE F1 (LiquidCool Snapdragon 845)"))
+        assertEquals("Xiaomi 14 Ultra", DeviceDataset.cleanDeviceName("Xiaomi 14 Ultra (1-inch LYT-900 Stepless f/1.63-f/4.0 Leica)"))
+    }
+
+    @Test
+    fun testBuildPropAndPifJsonExportFormats() {
+        val version = AndroidVersionDataset.getByApiLevel(34)
+        val device = DeviceGenerator.generateDevice(version, selectedBrand = "Xiaomi")
+
+        val buildProp = device.toBuildPropString()
+        assertTrue(buildProp.contains("ro.product.brand="))
+        assertTrue(buildProp.contains("ro.product.model="))
+        assertTrue(buildProp.contains("ro.product.device="))
+        assertTrue(buildProp.contains("ro.product.name="))
+        assertTrue(buildProp.contains("ro.product.manufacturer="))
+        assertTrue(buildProp.contains("ro.build.fingerprint="))
+        assertTrue(buildProp.contains("ro.build.id="))
+        assertTrue(buildProp.contains("ro.build.version.sdk=34"))
+
+        val pifJson = device.toPifJsonString()
+        val pifObj = org.json.JSONObject(pifJson)
+        assertTrue(pifObj.has("MANUFACTURER"))
+        assertTrue(pifObj.has("BRAND"))
+        assertTrue(pifObj.has("PRODUCT"))
+        assertTrue(pifObj.has("DEVICE"))
+        assertTrue(pifObj.has("MODEL"))
+        assertTrue(pifObj.has("FINGERPRINT"))
+        assertTrue(pifObj.has("ID"))
+        assertTrue(pifObj.has("FIRST_API_LEVEL"))
+    }
 }

@@ -134,25 +134,27 @@ fun ResultScreen(
             }
 
             // 1. Device Info
-            DeviceSection(title = "Device Info") {
-                CopyableField(label = "Model", value = device.model)
+            DeviceSection(title = "Device Info (ro.product.*)") {
+                CopyableField(label = "Model (ro.product.model)", value = device.model)
                 SectionDivider()
-                CopyableField(label = "Brand", value = device.brand)
+                CopyableField(label = "Device Codename (ro.product.device)", value = device.deviceCodename)
                 SectionDivider()
-                CopyableField(label = "Product Name", value = device.productName)
+                CopyableField(label = "Product Name (ro.product.name)", value = device.productName)
                 SectionDivider()
-                CopyableField(label = "Device Name", value = device.deviceName)
+                CopyableField(label = "Brand (ro.product.brand)", value = device.brand)
                 SectionDivider()
-                CopyableField(label = "Manufacturer", value = device.manufacturer)
+                CopyableField(label = "Manufacturer (ro.product.manufacturer)", value = device.manufacturer)
+                SectionDivider()
+                CopyableField(label = "Marketing Name", value = device.deviceName)
             }
 
             // 2. Android Info
-            DeviceSection(title = "Android Info") {
-                CopyableField(label = "Android Version", value = device.androidVersion.displayName)
+            DeviceSection(title = "Android Info (ro.build.*)") {
+                CopyableField(label = "Android Version (release)", value = device.androidVersion.displayName)
                 SectionDivider()
-                CopyableField(label = "SDK Version", value = device.sdkVersion.toString())
+                CopyableField(label = "SDK API Level (sdk)", value = device.sdkVersion.toString())
                 SectionDivider()
-                CopyableField(label = "Build ID", value = device.buildId)
+                CopyableField(label = "Build ID (id)", value = device.buildId)
                 SectionDivider()
                 CopyableField(label = "Device Codename", value = device.deviceCodename)
             }
@@ -238,48 +240,96 @@ fun ResultScreen(
             onDismissRequest = { showExportDialog = false },
             title = { Text("Export Device Profile", fontWeight = FontWeight.Bold) },
             text = {
-                Text(
-                    "Choose an export format to copy to clipboard or share via other applications.",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                        clipboard.setPrimaryClip(ClipData.newPlainText("Device JSON", device.toJsonString()))
-                        Toast.makeText(context, "JSON copied to clipboard", Toast.LENGTH_SHORT).show()
-                        showExportDialog = false
-                    }
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text("Copy JSON")
-                }
-            },
-            dismissButton = {
-                Row {
-                    TextButton(
+                    Text(
+                        text = "Select a format tailored for Google Play Services spoofing, Magisk, or device profile sharing:",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 13.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    // 1. Copy build.prop
+                    OutlinedButton(
+                        onClick = {
+                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                            clipboard.setPrimaryClip(ClipData.newPlainText("build.prop", device.toBuildPropString()))
+                            Toast.makeText(context, "build.prop copied to clipboard", Toast.LENGTH_SHORT).show()
+                            showExportDialog = false
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text("Copy build.prop (Magisk / Emulator)")
+                    }
+
+                    // 2. Copy Play Integrity JSON (pif.json)
+                    OutlinedButton(
+                        onClick = {
+                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                            clipboard.setPrimaryClip(ClipData.newPlainText("pif.json", device.toPifJsonString()))
+                            Toast.makeText(context, "Play Integrity JSON (pif.json) copied", Toast.LENGTH_SHORT).show()
+                            showExportDialog = false
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text("Copy Play Integrity (pif.json)")
+                    }
+
+                    // 3. Copy standard JSON
+                    OutlinedButton(
+                        onClick = {
+                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                            clipboard.setPrimaryClip(ClipData.newPlainText("Device JSON", device.toJsonString()))
+                            Toast.makeText(context, "Full JSON copied to clipboard", Toast.LENGTH_SHORT).show()
+                            showExportDialog = false
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text("Copy Full JSON")
+                    }
+
+                    // 4. Copy Text Summary
+                    OutlinedButton(
                         onClick = {
                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                             clipboard.setPrimaryClip(ClipData.newPlainText("Device Profile", device.toShareText()))
-                            Toast.makeText(context, "Full profile copied", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Text profile copied", Toast.LENGTH_SHORT).show()
                             showExportDialog = false
-                        }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp)
                     ) {
-                        Text("Copy All")
+                        Text("Copy Text Summary")
                     }
-                    TextButton(
+
+                    // 5. System Share
+                    OutlinedButton(
                         onClick = {
                             val sendIntent = Intent().apply {
                                 action = Intent.ACTION_SEND
-                                putExtra(Intent.EXTRA_TEXT, device.toJsonString())
+                                putExtra(Intent.EXTRA_TEXT, device.toBuildPropString())
                                 type = "text/plain"
                             }
                             context.startActivity(Intent.createChooser(sendIntent, "Share Device Profile"))
                             showExportDialog = false
-                        }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp)
                     ) {
-                        Text("Share")
+                        Text("Share via Other Apps")
                     }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showExportDialog = false }) {
+                    Text("Close")
                 }
             }
         )

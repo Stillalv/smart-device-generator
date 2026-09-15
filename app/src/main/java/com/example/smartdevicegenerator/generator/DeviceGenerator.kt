@@ -1,4 +1,4 @@
-﻿package com.example.smartdevicegenerator.generator
+package com.example.smartdevicegenerator.generator
 
 import com.example.smartdevicegenerator.data.DeviceDataset
 import com.example.smartdevicegenerator.model.AndroidVersion
@@ -14,6 +14,7 @@ object DeviceGenerator {
      */
     fun generateDevice(
         androidVersion: AndroidVersion,
+        selectedBrand: String? = null,
         customProfile: DeviceProfile? = null
     ): GeneratedDevice {
         var attempts = 0
@@ -24,7 +25,20 @@ object DeviceGenerator {
 
             // 1 & 2. Find compatible profiles
             val candidateProfile = customProfile ?: run {
-                val compatible = DeviceDataset.profiles.filter { it.supportsApi(androidVersion.apiLevel) }
+                val compatibleByVersion = DeviceDataset.profiles.filter { it.supportsApi(androidVersion.apiLevel) }
+                val compatible = if (!selectedBrand.isNullOrEmpty()) {
+                    val byBrand = compatibleByVersion.filter { it.brand.equals(selectedBrand, ignoreCase = true) }
+                    if (byBrand.isNotEmpty()) {
+                        byBrand
+                    } else {
+                        // If no profile of this brand supports this exact version, fallback to all profiles of this brand
+                        val allBrandProfiles = DeviceDataset.profiles.filter { it.brand.equals(selectedBrand, ignoreCase = true) }
+                        if (allBrandProfiles.isNotEmpty()) allBrandProfiles else compatibleByVersion
+                    }
+                } else {
+                    compatibleByVersion
+                }
+
                 if (compatible.isNotEmpty()) {
                     compatible[Random.nextInt(compatible.size)]
                 } else {
